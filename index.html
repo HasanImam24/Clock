@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orbital Clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1e2128;
+      --face: #252830;
+      --inner-glow: #2c3040;
+      --hour-color: #f0c040;
+      --min-color: #40e080;
+      --sec-color: #f04070;
+      --ring1: #f04070;
+      --ring2: #c8d830;
+      --ring3: #40e080;
+      --text: rgba(255,255,255,0.45);
+      --center: #ffffff;
+    }
+
+    body {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+    }
+
+    /* subtle radial bg texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, #2a2f3e 0%, #151820 100%);
+      z-index: -1;
+    }
+
+    .clock-wrapper {
+      position: relative;
+      width: 360px;
+      height: 360px;
+    }
+
+    /* outer glow ring */
+    .clock-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -18px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(60,70,100,0.5) 0%, transparent 70%);
+    }
+
+    .clock-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #323848 0%, #1e2230 60%, #181c26 100%);
+      box-shadow:
+        0 0 60px rgba(0,0,0,0.7),
+        inset 0 2px 4px rgba(255,255,255,0.06),
+        inset 0 -2px 6px rgba(0,0,0,0.5);
+    }
+
+    /* ── Orbital rings ── */
+    .rings-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* ── Hour numbers ── */
+    .numbers {
+      position: absolute;
+      inset: 0;
+    }
+    .numbers span {
+      position: absolute;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Hands ── */
+    .hands {
+      position: absolute;
+      inset: 0;
+    }
+    .hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+      border-radius: 4px;
+    }
+    .hand-hour {
+      width: 4px;
+      height: 28%;
+      margin-left: -2px;
+      background: linear-gradient(to top, var(--hour-color), #f8e080);
+      box-shadow: 0 0 8px var(--hour-color);
+      border-radius: 4px 4px 2px 2px;
+    }
+    .hand-minute {
+      width: 3px;
+      height: 37%;
+      margin-left: -1.5px;
+      background: linear-gradient(to top, var(--min-color), #80ffb0);
+      box-shadow: 0 0 8px var(--min-color);
+      border-radius: 4px 4px 2px 2px;
+    }
+    .hand-second {
+      width: 1.5px;
+      height: 40%;
+      margin-left: -0.75px;
+      background: linear-gradient(to top, var(--sec-color), #ff80a0);
+      box-shadow: 0 0 6px var(--sec-color);
+      border-radius: 4px 4px 1px 1px;
+    }
+    /* tail of second hand */
+    .hand-second::after {
+      content: '';
+      position: absolute;
+      bottom: -10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1.5px;
+      height: 8%;
+      background: var(--sec-color);
+      opacity: 0.6;
+    }
+
+    /* center dot */
+    .center-dot {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--center);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+      z-index: 10;
+    }
+
+    /* digital readout */
+    .digital {
+      margin-top: 22px;
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.5);
+    }
+    .digital span {
+      color: rgba(255,255,255,0.75);
+    }
+  </style>
+</head>
+<body>
+
+<div class="clock-wrapper">
+  <div class="clock-face"></div>
+
+  <!-- SVG orbital rings + glowing dots -->
+  <svg class="rings-svg" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- ring glows -->
+      <filter id="glow-r" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-dot" x="-200%" y="-200%" width="500%" height="500%">
+        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Ring 3 (outermost) – seconds, pink/red -->
+    <circle id="track3" cx="180" cy="180" r="162" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="2"/>
+    <circle id="arc3"   cx="180" cy="180" r="162" fill="none" stroke="#f04070" stroke-width="2.5"
+            stroke-linecap="round" filter="url(#glow-r)"
+            stroke-dasharray="1018" stroke-dashoffset="1018"
+            transform="rotate(-90 180 180)"/>
+    <circle id="dot3" cx="180" cy="18" r="7" fill="#f04070" filter="url(#glow-dot)"/>
+
+    <!-- Ring 2 (middle) – minutes, yellow-green -->
+    <circle id="track2" cx="180" cy="180" r="143" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="2"/>
+    <circle id="arc2"   cx="180" cy="180" r="143" fill="none" stroke="#c8d830" stroke-width="2.5"
+            stroke-linecap="round" filter="url(#glow-r)"
+            stroke-dasharray="898" stroke-dashoffset="898"
+            transform="rotate(-90 180 180)"/>
+    <circle id="dot2" cx="180" cy="37" r="7" fill="#c8d830" filter="url(#glow-dot)"/>
+
+    <!-- Ring 1 (innermost) – hours, green -->
+    <circle id="track1" cx="180" cy="180" r="124" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="2"/>
+    <circle id="arc1"   cx="180" cy="180" r="124" fill="none" stroke="#40e080" stroke-width="2.5"
+            stroke-linecap="round" filter="url(#glow-r)"
+            stroke-dasharray="779" stroke-dashoffset="779"
+            transform="rotate(-90 180 180)"/>
+    <circle id="dot1" cx="180" cy="56" r="7" fill="#40e080" filter="url(#glow-dot)"/>
+  </svg>
+
+  <!-- Hour numbers -->
+  <div class="numbers" id="numbers"></div>
+
+  <!-- Hands -->
+  <div class="hands">
+    <div class="hand hand-hour"   id="hourHand"></div>
+    <div class="hand hand-minute" id="minHand"></div>
+    <div class="hand hand-second" id="secHand"></div>
+  </div>
+
+  <div class="center-dot"></div>
+</div>
+
+<div class="digital" id="digital">
+  <span>00</span>:<span>00</span>:<span>00</span>
+</div>
+
+<script>
+  // ── Place hour numerals ──
+  const nums = document.getElementById('numbers');
+  for (let i = 1; i <= 12; i++) {
+    const angle = (i / 12) * 360 - 90; // degrees, 12 at top
+    const rad = angle * Math.PI / 180;
+    const r = 88; // radius from center (px) for 360px face
+    const cx = 180, cy = 180;
+    const x = cx + r * Math.cos(rad);
+    const y = cy + r * Math.sin(rad);
+    const el = document.createElement('span');
+    el.style.cssText = `
+      position:absolute;
+      width:22px;height:22px;
+      left:${x - 11}px;top:${y - 11}px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:600;
+      color:rgba(255,255,255,0.4);
+    `;
+    el.textContent = i;
+    nums.appendChild(el);
+  }
+
+  // ── Clock tick ──
+  const hourHand = document.getElementById('hourHand');
+  const minHand  = document.getElementById('minHand');
+  const secHand  = document.getElementById('secHand');
+
+  const arc1 = document.getElementById('arc1'); // hours
+  const arc2 = document.getElementById('arc2'); // minutes
+  const arc3 = document.getElementById('arc3'); // seconds
+
+  const dot1 = document.getElementById('dot1');
+  const dot2 = document.getElementById('dot2');
+  const dot3 = document.getElementById('dot3');
+
+  const r1 = 124, r2 = 143, r3 = 162;
+  const circ1 = 2 * Math.PI * r1;
+  const circ2 = 2 * Math.PI * r2;
+  const circ3 = 2 * Math.PI * r3;
+
+  const digital = document.getElementById('digital');
+
+  function moveDot(dotEl, r, angleDeg) {
+    const rad = (angleDeg - 90) * Math.PI / 180;
+    const x = 180 + r * Math.cos(rad);
+    const y = 180 + r * Math.sin(rad);
+    dotEl.setAttribute('cx', x);
+    dotEl.setAttribute('cy', y);
+  }
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function tick() {
+    const now = new Date();
+    const h = now.getHours() % 12;
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
+
+    const sFrac = s + ms / 1000;
+    const mFrac = m + sFrac / 60;
+    const hFrac = h + mFrac / 60;
+
+    // hands
+    hourHand.style.transform = `rotate(${hFrac * 30}deg)`;
+    minHand.style.transform  = `rotate(${mFrac * 6}deg)`;
+    secHand.style.transform  = `rotate(${sFrac * 6}deg)`;
+
+    // arcs (stroke-dashoffset from full = 0 fill)
+    const secPct = sFrac / 60;
+    const minPct = mFrac / 60;
+    const hrPct  = hFrac / 12;
+
+    arc3.setAttribute('stroke-dashoffset', circ3 * (1 - secPct));
+    arc2.setAttribute('stroke-dashoffset', circ2 * (1 - minPct));
+    arc1.setAttribute('stroke-dashoffset', circ1 * (1 - hrPct));
+
+    arc3.setAttribute('stroke-dasharray', circ3);
+    arc2.setAttribute('stroke-dasharray', circ2);
+    arc1.setAttribute('stroke-dasharray', circ1);
+
+    // dots
+    moveDot(dot3, r3, secPct * 360);
+    moveDot(dot2, r2, minPct * 360);
+    moveDot(dot1, r1, hrPct  * 360);
+
+    // digital
+    const hh = now.getHours() % 12 || 12;
+    const ampm = now.getHours() < 12 ? 'AM' : 'PM';
+    digital.innerHTML = `<span>${pad(hh)}</span>:<span>${pad(m)}</span>:<span>${pad(s)}</span> <small style="font-size:13px;opacity:0.6;letter-spacing:0.1em">${ampm}</small>`;
+  }
+
+  tick();
+  setInterval(tick, 50);
+</script>
+</body>
+</html>
